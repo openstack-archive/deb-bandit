@@ -1,0 +1,54 @@
+.TH bandit "1"
+.SH NAME
+\fBbandit\fP \- Security oriented static analyzer for python code
+.SH SYNOPSIS
+.IP
+bandit [\-h] [\-r] [\-a {file,vuln}] [\-n CONTEXT_LINES] [\-c CONFIG_FILE]" "User Commands"
+.SS "positional arguments:"
+.TP
+targets
+source file(s) or directory(s) to be tested
+.SS "optional arguments:"
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-r\fR, \fB\-\-recursive\fR
+process files in subdirectories
+.TP
+\fB\-a\fR {file,vuln}, \fB\-\-aggregate\fR {file,vuln}
+group results by vulnerability type or file it occurs
+in
+.TP
+\fB\-n\fR CONTEXT_LINES, \fB\-\-number\fR CONTEXT_LINES
+max number of code lines to display for each issue
+identified
+.TP
+\fB\-c\fR CONFIG_FILE, \fB\-\-configfile\fR CONFIG_FILE
+test config file, defaults to \fI/etc/bandit/bandit.yaml\fP,
+or./bandit.yaml if not given
+.TP
+\fB\-p\fR PROFILE, \fB\-\-profile\fR PROFILE
+test set profile in config to use (defaults to all
+tests)
+.TP
+\fB\-l\fR, \fB\-\-level\fR
+results level filter
+.TP
+\fB\-f\fR {csv,json,txt,xml}, \fB\-\-format\fR {csv,json,txt,xml}
+specify output format
+.TP
+\fB\-o\fR OUTPUT_FILE, \fB\-\-output\fR OUTPUT_FILE
+write report to filename
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+show extra information like excluded and included
+files
+.TP
+\fB\-d\fR, \fB\-\-debug\fR
+turn on debug mode
+.PP
+.IP
+[\-p PROFILE] [\-l] [\-f {csv,json,txt,xml}] [\-o OUTPUT_FILE] [\-v]
+[\-d]
+targets [targets ...]

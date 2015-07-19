@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+include /usr/share/openstack-pkg-tools/pkgos.make
+
+export OSLO_PACKAGE_VERSION=$(VERSION)
+export PYBUILD_NAME=bandit
+
+%:
+	dh $@ --with python2 --buildsystem=pybuild
+
+ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
+override_dh_auto_test:
+	PYTHONPATH=$(CURDIR) python setup.py testr --testr-args='--subunit  '
+endif
+
+override_dh_install:
+	dh_install --fail-missing
+	install -D -m 0644 $(CURDIR)/bandit/config/bandit.yaml $(CURDIR)/debian/bandit/etc/bandit/bandit.yaml
+	rm -rf debian/bandit/usr/lib/python*/*/bandit/config

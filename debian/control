@@ -1,0 +1,27 @@
+Source: bandit
+Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>
+Uploaders: Dave Walker (Daviey) <email@daviey.com>
+Section: python
+Priority: extra
+Build-Depends: debhelper (>= 7.4.3),
+               dh-python,
+               openstack-pkg-tools,
+               python-all (>= 2.6.6-3),
+               python-pbr,
+               python-setuptools (>= 0.6b3),
+               python-stevedore,
+               python-yaml,
+               testrepository
+Standards-Version: 3.9.6
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/bandit.git
+Vcs-Git: git://anonscm.debian.org/openstack/bandit.git
+Homepage: https://wiki.openstack.org/wiki/Security/Projects/Bandit
+
+Package: bandit
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}
+Description: Security oriented static analyzer for python code
+ Bandit is a tool designed to find common security issues in Python code. To
+ do this Bandit processes each file, builds an Abstract Syntaxt Tree (AST),
+ and runs appropriate plugins against the AST nodes.  Once Bandit has
+ finished scanning all the files it generates a report.
