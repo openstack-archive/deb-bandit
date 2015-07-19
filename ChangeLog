@@ -1,0 +1,209 @@
+CHANGES
+=======
+
+0.12.0
+------
+
+* Address multiline node lineno inaccuracies
+* Actually rely on entry-points for formatters
+* Add extension entry-points and loading
+* Adding paramiko injections check to blacklist functions
+* Fix config option fallback if "include" missing
+* Update README with missing usage changes
+* Adding verbose flag
+* Log the version of Python bandit is running under
+* Add notes to the README about Bandit on Python 3.4
+* Clean up tests and examples for Python 3.4
+* Update example files to work on Python 2 & 3
+* Add Python 3.4 compatibility to bandit
+* Adding documentation for SSL/TLS tests
+* Adding docs for temp issues
+* Use best logging practices
+* Smooth over some differences with six
+* Handle exception when invalid config file is specified
+* Update bandit to use absolute imports
+* Refactor BanditResultStore.report
+* Add XML output format support
+
+0.11.0
+------
+
+* Update the README file
+* Changing config file search paths
+* Adding a check for the use of Assert
+* Add XML vulnerability checking
+* Shift in result types & ranking scales
+* Added csv output format
+* Update README.rst
+* Fixed issue processing files containing invalid python
+* Update email to openstack-dev
+* Refactored/optimized reporting code
+
+0.10.1
+------
+
+* Fixing info output that was breaking JSON format
+* fixing bandits config settings
+
+0.10.0
+------
+
+* Fixing a bug with files listing when a file was skipped
+* Fixed -n flag processing
+* Fix a couple of issues with handling multi-line strings
+* Fixed severity level filtering
+* Fix new output file checking functionality
+* Adding util methods to help handle the mix of unicode and string
+* Add error checks/handing around output file case
+* Fix vulnerability aggregation bug
+* Fixed nosec flagging
+* Moving lineno into generic visitor
+* Make subprocess without `shell=True` into a plugin
+* Tweaking severity for a few plugins
+* Remove Python 2.6 from setup.cfg
+* Correct supported Python versions in setup.cfg
+* Update the config file, and use yaml.safe_load()
+* Wildcard injection requires a shell
+* Fixing uncaught 'InvalidModulePath' exception
+* Fix a leftover tuple unpacking in reporting code
+* Add tests for subprocesses and deserialization
+* Fixes for node_visitor, sql and hardcoded password tests
+* Add mako templating plugin and XSS profile
+* Refactored AST processing
+* Refactor functional tests to clarify scoring
+* Clean up test property decorators after refactor
+* Return the full name used in calls
+* Add mock to test-requirements
+* Add ceilometer to rootwrap check
+* Minor cleanup for _matches_glob_list function
+* Add check for secret=True on oslo password options
+* assertEqual should be (expected, actual)
+* Adds line ranges, DRYs code, fixes #nosec
+* Add documentation for exec, yaml, jinja2 plugins
+* Add list of Python values considered False
+* Update jinja2 plugin to be more accurate
+* Adding file discovery and directory exclusion
+* Adds jinja2 autocomplete=false test
+* Adds JSON output functionality
+* Add rootwrap checks for neutron and cinder
+* Add INFO check for any use of rootwrap
+* Further decorator changes and plugin migration
+* Removing un-reachable code
+* Adds decorator methods for tests
+* Removing warning about modules not installed in sys.path
+* New constants to support updated results structure
+* Adding meaningful exit codes to support use in gate
+* Rename README.md to README.rst
+* Update test-requirements.txt to match global requirements
+* Add __repr__ to the context object
+* Minor changes to profile-related debug output
+
+0.9.0
+-----
+
+* Remove the check for PROTOCOL_SSLv23
+* Make func, class name definitions fully qualified
+* Add unaliased mod name to import_aliases; Fix tests
+* Blacklist urlopen-like functions in urllib, urllib2
+* Add yaml.load to blacklist with yaml example file
+* Fix a reported bug when bandit encounters "__import__()"
+* Hardening bandit in the face of buggy plugins or odd ASTs
+* Graceful degradation when failing to full qualify an attr node
+* Fixing an oversight when processing none-attr nodes
+* Refactoring "checks_functions" to check function definitions
+* Removing TODO (to be tracked in Bandit wiki)
+* Updated README file
+* Adding a set of functional tests based on the examples folder
+* Quantifying bandit test results
+* Removing Py26 from the test env list, it's being deprecated
+* Adding a basic test for the gate (need at least one to pass)
+* Enabling PEP8 tests in tox and re-working source to comply
+* Making Bandit into an installable package and adding tox tests
+* Removing default '' return for ast_args_to_str()
+* Adding a test for use of HTTPSConnection
+* Adding a check to bandit for use of 'exec'
+* Better checks against blacklisted modules, catch __import__
+* Adding SSL/TLS protocol version checks
+* Temporarily commenting out hardcoded password test, it's broken
+* Add .gitreview file
+* Bug fix for hardcoded passwords test
+* Updated configuration file
+* Adding option to aggregate by vulnerability type and a test for hardcoded /tmp usage
+* Adding a test for hardcoded passwords
+* PEP 8 fixes
+* Renaming plugins, creating import blacklist section, adding check for dup function names
+* Updating the random test to include all usages of the random lib
+* Updated README
+* Updated AUTHORS file
+* Adding a test for random.random, use will return an INFO level message
+* Adding SQL Injection test, examples, and profile
+* Adding capability to check if certain modules have been imported during function calls
+* Minor PEP 8 fixes
+* Added AUTHORS file
+* Updated README file
+* Updating command line switches
+* Updated TODO file
+* Updating the README file to keep parity with recent changes
+* Fix bug with permissions matching
+* Moving bad names definition to config file; fixed bug with qualname
+* Create settings system, moved more fixed values to config, improved readability
+* First pass at moving some things to config, begin cleaning up code
+* Separate each test into its own file
+* Fixed a bug with handling _ast.Tuple
+* Allow creation of test profiles and switch config to yaml
+* Test type marked using decorators and tests now automatically discovered from plugins directory
+* Test type marked using decorators and tests now automatically discovered from plugins directory
+* Adding a property to access the raw AST node from context instance
+* Changed to pass Context instance to tests, rather than raw context
+* Refactoring to move the AST implementation details out of tests
+* Adding example file for utils.execute* shell=True tests
+* Adding more unsafe shell=True usage checks for OS utils library
+* Wildcard injection tests crash on non-string args
+* Updated README
+* Updated README
+* Updated TODO
+* Test for mark_safe() calls
+* Updated README
+* Broader test for calls with shell=True parameter
+* Updated README
+* First test targeting Str nodes (binding to all interfaces)
+* Minor PEP8 fixes
+* Add support for Str node types
+* Allow individual lines of code to be flagged for exclusion
+* Updated TODO
+* Updated README
+* Rework case where no findings are found
+* Modify call_bad_names test to use regex and add to blacklist
+* Introduce and utilize module-level constants
+* Specify UTF-8 coding
+* Updated TODO
+* Addition of Apache License 2.0
+* pep8 fix
+* Remove debug prints
+* Updated wildcards test to catch Popen(['','','']) case
+* Updated README
+* Tidy up output format
+* Optionally write output to file specified
+* pep8 fixes
+* pep8 fixes
+* pep8 fixes
+* Adding wildcard injection test
+* pep8 fixes
+* pep8 fixes
+* Modify manager to only display progress where needed
+* Remove unnecessary logger.error call from manager
+* Fix 'self' reference in manager
+* Add support for skipping files
+* Fix relative imports and error handling
+* Reposition setting of lineno in visit_Import and visit_ImportFrom
+* Support dynamic loading of tests
+* Refactor the call tests to use the new test context
+* Remove unused ast_args_to_str method
+* refactor to extract imports tests and build context
+* new bad imports example
+* starting refactor to extract tests from core
+* Move existing call tests into separate methods
+* updated readme
+* updated readme
+* initial commit
+* Initial commit

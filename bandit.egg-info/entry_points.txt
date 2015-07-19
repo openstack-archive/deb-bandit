@@ -1,0 +1,9 @@
+[bandit.formatters]
+csv = bandit.core.formatters:report_csv
+json = bandit.core.formatters:report_json
+txt = bandit.core.formatters:report_text
+xml = bandit.core.formatters:report_xml
+
+[console_scripts]
+bandit = bandit.bandit:main
+
