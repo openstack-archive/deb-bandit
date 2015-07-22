@@ -1,5 +1,5 @@
-bandit (0.12.0-1) UNRELEASED; urgency=low
+bandit (0.12.0-1) unstable; urgency=low
 
-  * Initial release (Closes #793007).
+  * Initial release (Closes: #793007).
 
- -- Dave Walker (Daviey) <email@daviey.com>  Sun, 18 Jul 2015 10:23:18 +0100
+ -- Dave Walker (Daviey) <email@daviey.com>  Wed, 22 Jul 2015 09:01:39 +0100
