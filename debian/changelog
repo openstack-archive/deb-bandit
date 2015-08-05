@@ -1,3 +1,12 @@
+bandit (0.13.0-1) UNRELEASED; urgency=low
+
+  * New upstream release:
+    - Use (& install) /etc/bandit/bandit.yaml config (Closes: #794072)
+    - Improved description of subprocess finding report (Closes: #794084)
+    - Fix Bad spacing in --help result (Closes: #794076)
+
+ -- Dave Walker (Daviey) <email@daviey.com>  Wed, 05 Aug 2015 21:59:23 +0100
+
 bandit (0.12.0-1) unstable; urgency=low
 
   * Initial release (Closes: #793007).
