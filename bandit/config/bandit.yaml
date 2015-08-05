@@ -28,6 +28,36 @@ include:
 exclude_dirs:
 
 profiles:
+    All:
+        include:
+            - any_other_function_with_shell_equals_true
+            - assert_used
+            - blacklist_calls
+            - blacklist_import_func
+            - blacklist_imports
+            - exec_used
+            - execute_with_run_as_root_equals_true
+            - hardcoded_bind_all_interfaces
+            - hardcoded_password
+            - hardcoded_sql_expressions
+            - hardcoded_tmp_directory
+            - jinja2_autoescape_false
+            - linux_commands_wildcard_injection
+            - paramiko_calls
+            - password_config_option_not_marked_secret
+            - request_with_no_cert_validation
+            - set_bad_file_permissions
+            - subprocess_popen_with_shell_equals_true
+            - subprocess_without_shell_equals_true
+            - start_process_with_a_shell
+            - start_process_with_no_shell
+            - start_process_with_partial_path
+            - ssl_with_bad_defaults
+            - ssl_with_bad_version
+            - ssl_with_no_version
+            - try_except_pass
+            - use_of_mako_templates
+
     XSS:
         include:
             - jinja2_autoescape_false
@@ -40,6 +70,7 @@ profiles:
             - any_other_function_with_shell_equals_true
             - start_process_with_a_shell
             - start_process_with_no_shell
+            - start_process_with_partial_path
         exclude:
 
     SqlInjection:
@@ -76,9 +107,55 @@ blacklist_calls:
         - urllib_urlopen:
             qualnames: [urllib.urlopen, urllib.urlretrieve, urllib.URLopener, urllib.FancyURLopener, urllib2.urlopen, urllib2.Request]
             message: "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected."
-        - paramiko_injection:
-            qualnames: [paramiko.exec_command, paramiko.invoke_shell]
-            message: "Paramiko exec_command() and invoke_shell() usage may expose command injection vulnerabilities and should be reviewed."
+        - random:
+            qualnames: [random.random, random.randrange, random.randint, random.choice, random.uniform, random.triangular]
+            message: "Standard pseudo-random generators are not suitable for security/cryptographic purposes."
+            level: "LOW"
+
+        # Most of this is based off of Christian Heimes' work on defusedxml:
+        #   https://pypi.python.org/pypi/defusedxml/#defusedxml-sax
+
+        - xml_bad_cElementTree:
+            qualnames: [xml.etree.cElementTree.parse,
+                        xml.etree.cElementTree.iterparse,
+                        xml.etree.cElementTree.fromstring,
+                        xml.etree.cElementTree.XMLParser]
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+        - xml_bad_ElementTree:
+            qualnames: [xml.etree.ElementTree.parse,
+                        xml.etree.ElementTree.iterparse,
+                        xml.etree.ElementTree.fromstring,
+                        xml.etree.ElementTree.XMLParser]
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+        - xml_bad_expatreader:
+            qualnames: [xml.sax.expatreader.create_parser]
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+        - xml_bad_expatbuilder:
+            qualnames: [xml.dom.expatbuilder.parse,
+                        xml.dom.expatbuilder.parseString]
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+        - xml_bad_sax:
+            qualnames: [xml.sax.parse,
+                        xml.sax.parseString,
+                        xml.sax.make_parser]
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+        - xml_bad_minidom:
+            qualnames: [xml.dom.minidom.parse,
+                        xml.dom.minidom.parseString]
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+        - xml_bad_pulldom:
+            qualnames: [xml.dom.pulldom.parse,
+                        xml.dom.pulldom.parseString]
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+        - xml_bad_etree:
+            qualnames: [lxml.etree.parse,
+                        lxml.etree.fromstring,
+                        lxml.etree.RestrictedElement,
+                        lxml.etree.GlobalParserTLS,
+                        lxml.etree.getDefaultParser,
+                        lxml.etree.check_docinfo]
+            message: "Using {func} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {func} with it's defusedxml equivilent function."
+
 
 shell_injection:
     # Start a process using the subprocess module, or one of its wrappers.
@@ -105,8 +182,33 @@ blacklist_imports:
             level: LOW
             message: "Consider possible security implications associated with {module} module."
 
+        # Most of this is based off of Christian Heimes' work on defusedxml:
+        #   https://pypi.python.org/pypi/defusedxml/#defusedxml-sax
+
+        - xml_libs:
+            imports: [xml.etree.cElementTree,
+                      xml.etree.ElementTree,
+                      xml.sax.expatreader,
+                      xml.sax,
+                      xml.dom.expatbuilder,
+                      xml.dom.minidom,
+                      xml.dom.pulldom,
+                      lxml.etree,
+                      lxml]
+            message: "Using {module} to parse untrusted XML data is known to be vulnerable to XML attacks. Replace {module} with the equivilent defusedxml package."
+            level: LOW
+        - xml_libs_high:
+            imports: [xmlrpclib]
+            message: "Using {module} to parse untrusted XML data is known to be vulnerable to XML attacks. Use defused.xmlrpc.monkey_patch() function to monkey-patch xmlrpclib and mitigate XML vulnerabilities."
+            level: HIGH
+
+hardcoded_tmp_directory:
+    tmp_dirs:  ['/tmp', '/var/tmp', '/dev/shm']
+
 hardcoded_password:
-    word_list: "wordlist/default-passwords"
+    # Support for full path, relative path and special "%(site_data_dir)s"
+    # substitution (/usr/{local}/share)
+    word_list: "%(site_data_dir)s/wordlist/default-passwords"
 
 ssl_with_bad_version:
     bad_protocol_versions:
@@ -130,3 +232,6 @@ execute_with_run_as_root_equals_true:
         - neutron.agent.linux.utils.execute
         - nova.utils.execute
         - nova.utils.trycmd
+
+try_except_pass:
+  check_typed_exception: True

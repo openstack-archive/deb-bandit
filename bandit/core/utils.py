@@ -181,6 +181,13 @@ class InvalidModulePath(Exception):
     pass
 
 
+class NoConfigFileFound(Exception):
+    def __init__(self, config_locations):
+        message = ("no config found - tried: " +
+                   ", ".join(config_locations))
+        super(NoConfigFileFound, self).__init__(message)
+
+
 def get_module_qualname_from_path(path):
     '''Get the module's qualified name by analysis of the path.
 
@@ -261,3 +268,86 @@ def safe_str(obj):
     except UnicodeEncodeError:
         # obj is unicode
         return unicode(obj).encode('unicode_escape')
+
+
+def linerange(node):
+    """Get line number range from a node."""
+    strip = {"body": None, "orelse": None,
+             "handlers": None, "finalbody": None}
+    fields = dir(node)
+    for key in strip.keys():
+        if key in fields:
+            strip[key] = getattr(node, key)
+            setattr(node, key, [])
+
+    lines = set()
+    for n in ast.walk(node):
+        if hasattr(n, 'lineno'):
+            lines.add(n.lineno)
+
+    for key in strip.keys():
+        if strip[key] is not None:
+            setattr(node, key, strip[key])
+
+    if len(lines):
+        return range(min(lines), max(lines) + 1)
+    return [0, 1]
+
+
+def linerange_fix(node):
+    """Try and work around a known Python bug with multi-line strings."""
+    # deal with multiline strings lineno behavior (Python issue #16806)
+    lines = linerange(node)
+    if hasattr(node, 'sibling') and hasattr(node.sibling, 'lineno'):
+        start = min(lines)
+        delta = node.sibling.lineno - start
+        if delta > 1:
+            return range(start, node.sibling.lineno)
+    return lines
+
+
+def concat_string(node, stop=None):
+    '''Builds a string from a ast.BinOp chain.
+
+    This will build a string from a series of ast.Str nodes wrapped in
+    ast.BinOp nodes. Somthing like "a" + "b" + "c" or "a %s" % val etc.
+    The provided node can be any participant in the BinOp chain.
+
+    :param node: (ast.Str or ast.BinOp) The node to process
+    :param stop: (ast.Str or ast.BinOp) Optional base node to stop at
+    :returns: (Tuple) the root node of the expression, the string value
+    '''
+    def _get(node, bits, stop=None):
+        if node != stop:
+            bits.append(
+                _get(node.left, bits, stop)
+                if isinstance(node.left, ast.BinOp)
+                else node.left)
+            bits.append(
+                _get(node.right, bits, stop)
+                if isinstance(node.right, ast.BinOp)
+                else node.right)
+
+    bits = [node]
+    while isinstance(node.parent, ast.BinOp):
+        node = node.parent
+    if isinstance(node, ast.BinOp):
+        _get(node, bits, stop)
+    return (node, " ".join([x.s for x in bits if isinstance(x, ast.Str)]))
+
+
+def get_called_name(node):
+    '''Get a function name from an ast.Call node.
+
+    An ast.Call node representing a method call with present differently to one
+    wrapping a function call: thing.call() vs call(). This helper will grab the
+    unqualified call name correctly in either case.
+
+    :param node: (ast.Call) the call node
+    :returns: (String) the function name
+    '''
+    func = node.func
+    try:
+        return (func.attr if isinstance(func, ast.Attribute) else func.id)
+    except AttributeError:
+        return ""

@@ -20,6 +20,7 @@ import os
 import sys
 
 from bandit.core import config as b_config
+from bandit.core import constants as constants
 from bandit.core import meta_ast as b_meta_ast
 from bandit.core import node_visitor as b_node_visitor
 from bandit.core import result_store as b_result_store
@@ -41,7 +42,7 @@ class BanditManager():
         '''
         self.debug = debug
         self.verbose = verbose
-        self.logger = self._init_logger(debug)
+        self.logger = logging.getLogger()
         self.b_conf = b_config.BanditConfig(self.logger, config_file)
         self.files_list = []
         self.excluded_files = []
@@ -82,6 +83,10 @@ class BanditManager():
         self.scores = []
 
     @property
+    def has_tests(self):
+        return self.b_ts.has_tests
+
+    @property
     def get_logger(self):
         return self.logger
 
@@ -89,19 +94,40 @@ class BanditManager():
     def get_resultstore(self):
         return self.b_rs
 
-    @property
-    def results_count(self):
+    def results_count(self, sev_filter=None, conf_filter=None):
         '''Return the count of results
 
+        :param sev_filter: Severity level to filter lower
+        :param conf_filter: Confidence level to filter
         :return: Number of results in the set
         '''
-        return self.b_rs.count
+        count = 0
 
-    def output_results(self, lines, level, output_filename, output_format):
+        rank = constants.RANKING
+
+        for issue_file in self.b_rs.resstore:
+            for issue in self.b_rs.resstore[issue_file]:
+
+                if (sev_filter and
+                        rank.index(issue['issue_severity']) < sev_filter):
+                    # don't count if this doesn't match filter requirement
+                    continue
+
+                if (conf_filter and
+                        rank.index(issue['issue_confidence']) < conf_filter):
+                    continue
+
+                count += 1
+
+        return count
+
+    def output_results(self, lines, sev_level, conf_level, output_filename,
+                       output_format):
         '''Outputs results from the result store
 
         :param lines: How many surrounding lines to show per result
-        :param level: Which levels to show (info, warning, error)
+        :param sev_level: Which severity levels to show (LOW, MEDIUM, HIGH)
+        :param conf_level: Which confidence levels to show (LOW, MEDIUM, HIGH)
         :param output_filename: File to store results
         :param output_format: output format, either 'json' or 'txt'
         :return: -
@@ -110,8 +136,8 @@ class BanditManager():
         self.b_rs.report(
             self.files_list, self.scores,
             excluded_files=self.excluded_files, lines=lines,
-            level=level, output_filename=output_filename,
-            output_format=output_format
+            sev_level=sev_level, conf_level=conf_level,
+            output_filename=output_filename, output_format=output_format
         )
 
     def output_metaast(self):
@@ -242,30 +268,6 @@ class BanditManager():
             )
             score = res.process(fdata)
         return score
-
-    def _init_logger(self, debug=False, log_format=None):
-        '''Initialize the logger
-
-        :param debug: Whether to enable debug mode
-        :return: An instantiated logging instance
-        '''
-        log_level = logging.INFO
-        if debug:
-            log_level = logging.DEBUG
-
-        if not log_format:
-            # default log format
-            log_format_string = '[%(module)s]\t%(levelname)s\t%(message)s'
-        else:
-            log_format_string = log_format
-
-        logger = logging.getLogger()
-        logger.setLevel(log_level)
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(logging.Formatter(log_format_string))
-        logger.addHandler(handler)
-        logger.debug("logging initialized")
-        return logger
 
 
 def _get_files_from_dir(files_dir, included_globs='*.py',

@@ -20,14 +20,76 @@ import logging
 import os
 import sys
 
-from bandit.core import extension_loader as ext_loader
-from bandit.core import manager as b_manager
+from appdirs import site_config_dir
+from appdirs import user_config_dir
 
-default_test_config = 'bandit.yaml'
+from bandit.core import manager as b_manager
+from bandit.core import utils
+
+BASE_CONFIG = '/bandit.yaml'
+
+
+def _init_logger(debug=False, log_format=None):
+    '''Initialize the logger
+
+    :param debug: Whether to enable debug mode
+    :return: An instantiated logging instance
+    '''
+    log_level = logging.INFO
+    if debug:
+        log_level = logging.DEBUG
+
+    if not log_format:
+        # default log format
+        log_format_string = '[%(module)s]\t%(levelname)s\t%(message)s'
+    else:
+        log_format_string = log_format
+
+    logger = logging.getLogger()
+    logger.setLevel(log_level)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter(log_format_string))
+    logger.addHandler(handler)
+    logger.debug("logging initialized")
+    return logger
+
+
+def _init_extensions():
+    from bandit.core import extension_loader as ext_loader
+    return ext_loader.MANAGER
+
+
+def _find_config():
+    # prefer config file in the following order:
+    # 1) current directory, 2) user home directory, 3) bundled config
+    config_dirs = (['.'] + [user_config_dir("bandit")] +
+                   site_config_dir("bandit", multipath=True).split(':'))
+    config_locations = [s + BASE_CONFIG for s in config_dirs]
+
+    # pip on Mac installs to the following path, but appdirs expects to
+    # follow Mac's BPFileSystem spec which doesn't include this path so
+    # we'll insert it. Issue raised as http://git.io/vOreU
+    mac_pip_cfg_path = "/usr/local/etc/bandit/bandit.yaml"
+    if mac_pip_cfg_path not in config_locations:
+        config_locations.append(mac_pip_cfg_path)
+
+    for config_file in config_locations:
+        if os.path.isfile(config_file):
+            return config_file  # Found a valid config
+    else:
+        # Failed to find any config, raise an error.
+        raise utils.NoConfigFileFound(config_locations)
 
 
 def main():
-    extension_mgr = ext_loader.MANAGER
+    # bring our logging stuff up as early as possible
+    debug = ('-d' in sys.argv or '--debug' in sys.argv)
+    logger = _init_logger(debug)
+    # By default path would be /etx/xdg/bandit, we want system paths
+    os.environ['XDG_CONFIG_DIRS'] = '/etc:/usr/local/etc'
+    extension_mgr = _init_extensions()
+
+    # now do normal startup
     parser = argparse.ArgumentParser(
         description='Bandit - a Python source code analyzer.'
     )
@@ -53,8 +115,8 @@ def main():
     parser.add_argument(
         '-c', '--configfile', dest='config_file',
         action='store', default=None, type=str,
-        help=('test config file, defaults to /etc/bandit/bandit.yaml, or'
-              './bandit.yaml if not given')
+        help=('if omitted default locations are checked. '
+              'Check documentation for searched paths')
     )
     parser.add_argument(
         '-p', '--profile', dest='profile',
@@ -62,8 +124,16 @@ def main():
         help='test set profile in config to use (defaults to all tests)'
     )
     parser.add_argument(
-        '-l', '--level', dest='level', action='count',
-        default=1, help='results level filter'
+        '-l', '--level', dest='severity', action='count',
+        default=1, help=('results severity filter. Show only issues of a given'
+                         ' severity level or higher. -l for LOW,'
+                         ' -ll for MEDIUM, -lll for HIGH')
+    )
+    parser.add_argument(
+        '-i', '--confidence', dest='confidence', action='count',
+        default=1, help='confidence results filter, show only issues of this '
+                        'level or higher. -i for LOW, -ii for MEDIUM, '
+                        '-iii for HIGH'
     )
     parser.add_argument(
         '-f', '--format', dest='output_format', action='store',
@@ -93,40 +163,16 @@ def main():
     args = parser.parse_args()
     config_file = args.config_file
     if not config_file:
-
-        home_config = None
-
-        # attempt to get the home directory from environment
-        home_dir = os.environ.get('HOME')
-        if home_dir:
-            home_config = "%s/.config/bandit/%s" % (home_dir,
-                                                    default_test_config)
-
-        installed_config = str(os.path.dirname(os.path.realpath(__file__)) +
-                               '/config/%s' % default_test_config)
-
-        # prefer config file in the following order:
-        # 1) current directory, 2) user home directory, 3) bundled config
-        config_paths = [default_test_config, home_config, installed_config]
-
-        for path in config_paths:
-            if path and os.access(path, os.R_OK):
-                config_file = path
-                break
-
-    if not config_file:
-        # no logger yet, so using print
-        print ("no config found, tried ...")
-        for path in config_paths:
-            if path:
-                print ("\t%s" % path)
-        sys.exit(2)
+        try:
+            config_file = _find_config()
+        except utils.NoConfigFileFound as e:
+            logger.error(e)
+            sys.exit(2)
 
     b_mgr = b_manager.BanditManager(config_file, args.agg_type,
                                     args.debug, profile_name=args.profile,
                                     verbose=args.verbose)
-    # we getLogger() here because BanditManager has configured it at this point
-    logger = logging.getLogger()
+
     if args.output_format != "json":
         logger.info("using config: %s", config_file)
         logger.info("running on Python %d.%d.%d", sys.version_info.major,
@@ -142,6 +188,12 @@ def main():
             )
             sys.exit(2)
 
+    # no point running if there are no tests available
+    if not b_mgr.has_tests:
+        logger.error('Could not find any tests to apply, please check '
+                     'the configuration.')
+        sys.exit(2)
+
     # initiate file discovery step within Bandit Manager
     b_mgr.discover_files(args.targets, args.recursive)
 
@@ -151,11 +203,13 @@ def main():
         b_mgr.output_metaast()
 
     # trigger output of results by Bandit Manager
-    b_mgr.output_results(args.context_lines, args.level - 1, args.output_file,
+    b_mgr.output_results(args.context_lines, args.severity - 1,
+                         args.confidence - 1, args.output_file,
                          args.output_format)
 
     # return an exit code of 1 if there are results, 0 otherwise
-    if b_mgr.results_count > 0:
+    if b_mgr.results_count(sev_filter=args.severity - 1,
+                           conf_filter=args.confidence - 1) > 0:
         sys.exit(1)
     else:
         sys.exit(0)

@@ -76,9 +76,12 @@ def blacklist_calls(context, config):
             elif check[3] == 'LOW':
                 level = bandit.LOW
 
+            message = check[2].replace("{func}",
+                                       context.call_function_name_qual)
+
             return bandit.Issue(
                 severity=level, confidence=confidence,
-                text="%s  %s" % (check[2], context.call_args_string)
+                text="%s  %s" % (message, context.call_args_string)
             )
 
 
@@ -103,12 +106,9 @@ def _get_tuple_for_item(blacklist_object):
         message = blacklist_object['message']
 
     if 'level' in blacklist_object:
-        if blacklist_object['level'] == 'HIGH':
-            level = 'HIGH'
-        elif blacklist_object['level'] == 'MEDIUM':
-            level = 'MEDIUM'
-        elif blacklist_object['level'] == 'LOW':
-            level = 'LOW'
+        _level = blacklist_object['level'].upper()
+        if _level in {'HIGH', 'MEDIUM', 'LOW'}:
+            level = _level
 
     if 'params' in blacklist_object:
         params = blacklist_object['params']

@@ -122,8 +122,8 @@ class FunctionalTests(unittest.TestCase):
         self.check_example('hardcoded-passwords.py', expect)
 
     def test_hardcoded_tmp(self):
-        '''Test for hard-coded /tmp.'''
-        expect = {'SEVERITY': {'MEDIUM': 1}, 'CONFIDENCE': {'MEDIUM': 1}}
+        '''Test for hard-coded /tmp, /var/tmp, /dev/shm'''
+        expect = {'SEVERITY': {'MEDIUM': 3}, 'CONFIDENCE': {'MEDIUM': 3}}
         self.check_example('hardcoded-tmp.py', expect)
 
     def test_httplib_https(self):
@@ -236,7 +236,7 @@ class FunctionalTests(unittest.TestCase):
 
     def test_random_module(self):
         '''Test for the `random` module.'''
-        expect = {'SEVERITY': {'LOW': 3}, 'CONFIDENCE': {'HIGH': 3}}
+        expect = {'SEVERITY': {'LOW': 6}, 'CONFIDENCE': {'HIGH': 6}}
         self.check_example('random_module.py', expect)
 
     def test_requests_ssl_verify_disabled(self):
@@ -249,15 +249,12 @@ class FunctionalTests(unittest.TestCase):
         expect = {'SEVERITY': {'LOW': 5}, 'CONFIDENCE': {'HIGH': 5}}
         self.check_example('skip.py', expect)
 
-    def test_sql_statements_with_sqlalchemy(self):
+    def test_sql_statements(self):
         '''Test for SQL injection through string building.'''
-        expect = {'SEVERITY': {'LOW': 4}, 'CONFIDENCE': {'LOW': 4}}
-        self.check_example('sql_statements_with_sqlalchemy.py', expect)
-
-    def test_sql_statements_without_sql_alchemy(self):
-        '''Test for SQL injection without SQLAlchemy.'''
-        expect = {'SEVERITY': {'MEDIUM': 4}, 'CONFIDENCE': {'LOW': 4}}
-        self.check_example('sql_statements_without_sql_alchemy.py', expect)
+        expect = {
+            'SEVERITY': {'MEDIUM': 11},
+            'CONFIDENCE': {'LOW': 6, 'MEDIUM': 5}}
+        self.check_example('sql_statements.py', expect)
 
     def test_ssl_insecure_version(self):
         '''Test for insecure SSL protocol versions.'''
@@ -369,8 +366,22 @@ class FunctionalTests(unittest.TestCase):
     def test_paramiko_injection(self):
         '''Test paramiko command execution.'''
         expect = {'SEVERITY': {'MEDIUM': 2},
-                  'CONFIDENCE': {'HIGH': 2}}
+                  'CONFIDENCE': {'MEDIUM': 2}}
         self.check_example('paramiko_injection.py', expect)
+
+    def test_partial_path(self):
+        '''Test process spawning with partial file paths.'''
+        expect = {'SEVERITY': {'LOW': 9},
+                  'CONFIDENCE': {'HIGH': 9}}
+
+        self.check_example('partial_path_process.py', expect)
+
+    def test_try_except_pass(self):
+        '''Test try, except pass detection.'''
+        expect = {'SEVERITY': {'LOW': 3},
+                  'CONFIDENCE': {'HIGH': 3}}
+
+        self.check_example('try_except_pass.py', expect)
 
     def test_multiline_code(self):
         '''Test issues in multiline statements return code as expected.'''
@@ -387,7 +398,7 @@ class FunctionalTests(unittest.TestCase):
         self.assertEqual(range(2, 7), issues[0]['line_range'])
         self.assertIn('/tmp', issues[0]['code'])
         self.assertEqual(18, issues[1]['line_number'])
-        self.assertEqual(range(16, 21), issues[1]['line_range'])
+        self.assertEqual(range(16, 19), issues[1]['line_range'])
         self.assertIn('/tmp', issues[1]['code'])
         self.assertEqual(23, issues[2]['line_number'])
         self.assertEqual(range(22, 31), issues[2]['line_range'])

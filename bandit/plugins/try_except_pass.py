@@ -14,21 +14,25 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import ast
+
 import bandit
-from bandit.core.test_properties import *
+from bandit.core import test_properties
 
 
-@takes_config
-@checks('Str')
-def hardcoded_tmp_directory(context, config):
-    if (config is not None and 'tmp_dirs' in config):
-        tmp_dirs = config['tmp_dirs']
-    else:
-        tmp_dirs = ['/tmp', '/var/tmp', '/dev/shm']
+@test_properties.takes_config
+@test_properties.checks('ExceptHandler')
+def try_except_pass(context, config):
+    node = context.node
+    if len(node.body) == 1:
+        if (not config['check_typed_exception'] and
+           node.type is not None and
+           node.type.id != 'Exception'):
+                return
 
-    if any(s in context.string_val for s in tmp_dirs):
-        return bandit.Issue(
-            severity=bandit.MEDIUM,
-            confidence=bandit.MEDIUM,
-            text="Probable insecure usage of temp file/directory."
-        )
+        if isinstance(node.body[0], ast.Pass):
+            return bandit.Issue(
+                severity=bandit.LOW,
+                confidence=bandit.HIGH,
+                text=("Try, Except, Pass detected.")
+            )
