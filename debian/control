@@ -13,7 +13,8 @@ Build-Depends: debhelper (>= 9),
                python3-all,
                python3-pbr,
                python3-setuptools,
-Build-Depends-Indep: python-coverage,
+Build-Depends-Indep: python-appdirs,
+                     python-coverage,
                      python-fixtures,
                      python-hacking (>= 0.9.2),
                      python-mock,
@@ -22,6 +23,7 @@ Build-Depends-Indep: python-coverage,
                      python-testscenarios,
                      python-testtools,
                      python-yaml,
+                     python3-appdirs,
                      python3-fixtures,
                      python3-hacking (>= 0.9.2),
                      python3-mock,
@@ -40,7 +42,8 @@ Homepage: https://wiki.openstack.org/wiki/Security/Projects/Bandit
 
 Package: python-bandit
 Architecture: all
-Depends: python-six (>= 1.9.0),
+Depends: python-appdirs,
+         python-six (>= 1.9.0),
          python-stevedore,
          python-yaml,
          ${misc:Depends},
@@ -55,7 +58,8 @@ Description: Security oriented static analyzer for python code - Python 2.7
 
 Package: python3-bandit
 Architecture: all
-Depends: python3-six (>= 1.9.0),
+Depends: python3-appdirs,
+         python3-six (>= 1.9.0),
          python3-stevedore,
          python3-yaml,
          ${misc:Depends},
