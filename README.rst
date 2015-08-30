@@ -3,6 +3,10 @@ Bandit
 
 A security linter from OpenStack Security
 
+* Free software: Apache license
+* Documentation: https://wiki.openstack.org/wiki/Security/Projects/Bandit
+* Source: https://git.openstack.org/cgit/openstack/bandit
+* Bugs: https://bugs.launchpad.net/bandit
 
 Overview
 --------
@@ -116,12 +120,14 @@ GNU/Linux:
  - ~/.config/bandit/bandit.yaml
  - /etc/bandit/bandit.yaml
  - /usr/local/etc/bandit/bandit.yaml
+ - <path to venv>/etc/bandit/bandit.yaml (if running within virtualenv)
 
 Mac OSX:
  - ./bandit.yaml
  - /Users/${USER}/Library/Application Support/bandit/bandit.yaml
  - /Library/Application Support/bandit/bandit.yaml
  - /usr/local/etc/bandit/bandit.yaml
+ - <path to venv>/bandit/config/bandit.yaml (if running within virtualenv)
 
 Exclusions
 ----------
@@ -241,6 +247,10 @@ You can test any changes with tox::
     tox -e py34
     tox -e cover
 
+Reporting Bugs
+--------------
+Bugs should be reported on Launchpad. To file a bug against Bandit, visit:
+https://bugs.launchpad.net/bandit/+filebug
 
 Under Which Version of Python Should I Install Bandit?
 ------------------------------------------------------

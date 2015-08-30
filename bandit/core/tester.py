@@ -15,11 +15,15 @@
 # under the License.
 
 import copy
+import warnings
 
 import six
 
 from bandit.core import constants
 from bandit.core import context as b_context
+from bandit.core import utils
+
+warnings.formatwarning = utils.warnings_formatter
 
 
 class BanditTester():
@@ -60,6 +64,12 @@ class BanditTester():
                     # TODO(??): Possibly allow override from profile
                     test_config = self.config.get_option(
                         test._takes_config)
+                    if test_config is None:
+                        warnings.warn(
+                            '"{0}" has been skipped due to missing config '
+                            '"{1}".'.format(test.__name__, test._takes_config)
+                        )
+                        continue
                     result = test(context, test_config)
                 else:
                     result = test(context)
