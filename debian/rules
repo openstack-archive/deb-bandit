@@ -21,6 +21,8 @@ override_dh_install:
 			--root $(CURDIR)/debian/python3-bandit; \
 	done
 	rm -f $(CURDIR)/debian/python*/usr/lib/python*/dist-packages/*.pth
+	install -D -m 0644 $(CURDIR)/bandit/config/bandit.yaml $(CURDIR)/debian/bandit/etc/bandit/bandit.yaml
+	rm -rf debian/*/usr/lib/python*/*/bandit/config
 	mv $(CURDIR)/debian/python-bandit/usr/bin/bandit $(CURDIR)/debian/python-bandit/usr/bin/python2-bandit
 	mv $(CURDIR)/debian/python3-bandit/usr/bin/bandit $(CURDIR)/debian/python3-bandit/usr/bin/python3-bandit
 
@@ -39,8 +41,3 @@ ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
 		testr-python$$PYMAJOR slowest ; \
 	done
 endif
-
-override_dh_install:
-	dh_install --fail-missing
-	install -D -m 0644 $(CURDIR)/bandit/config/bandit.yaml $(CURDIR)/debian/bandit/etc/bandit/bandit.yaml
-	rm -rf debian/bandit/usr/lib/python*/*/bandit/config
