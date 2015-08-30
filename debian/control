@@ -1,27 +1,70 @@
 Source: bandit
-Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>
-Uploaders: Dave Walker (Daviey) <email@daviey.com>
 Section: python
 Priority: extra
-Build-Depends: debhelper (>= 7.4.3),
+Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>
+Uploaders: Dave Walker (Daviey) <email@daviey.com>,
+           Thomas Goirand <zigo@debian.org>,
+Build-Depends: debhelper (>= 9),
                dh-python,
                openstack-pkg-tools,
-               python-all (>= 2.6.6-3),
+               python-all,
                python-pbr,
-               python-setuptools (>= 0.6b3),
-               python-stevedore,
-               python-yaml,
-               testrepository
+               python-setuptools,
+Build-Depends-Indep: python-coverage,
+                     python-fixtures,
+                     python-hacking (>= 0.9.2),
+                     python-mock,
+                     python-six (>= 1.9.0),
+                     python-stevedore,
+                     python-testscenarios,
+                     python-testtools,
+                     python-yaml,
+                     subunit,
+                     testrepository,
 Standards-Version: 3.9.6
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/bandit.git
 Vcs-Git: git://anonscm.debian.org/openstack/bandit.git
 Homepage: https://wiki.openstack.org/wiki/Security/Projects/Bandit
 
-Package: bandit
+Package: python-bandit
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}
-Description: Security oriented static analyzer for python code
+Depends: python-six (>= 1.9.0),
+         python-stevedore,
+         python-yaml,
+         ${misc:Depends},
+         ${python:Depends},
+Description: Security oriented static analyzer for python code - Python 2.7
  Bandit is a tool designed to find common security issues in Python code. To
  do this Bandit processes each file, builds an Abstract Syntaxt Tree (AST),
  and runs appropriate plugins against the AST nodes.  Once Bandit has
  finished scanning all the files it generates a report.
+ .
+ This package contains the Python 2.7 module.
+
+Package: python3-bandit
+Architecture: all
+Depends: python3-six (>= 1.9.0),
+         python3-stevedore,
+         python3-yaml,
+         ${misc:Depends},
+         ${python3:Depends},
+Description: Security oriented static analyzer for python code - Python 3.x
+ Bandit is a tool designed to find common security issues in Python code. To
+ do this Bandit processes each file, builds an Abstract Syntaxt Tree (AST),
+ and runs appropriate plugins against the AST nodes.  Once Bandit has
+ finished scanning all the files it generates a report.
+ .
+ This package contains the Python 3.x module.
+
+Package: bandit
+Architecture: all
+Depends: python-bandit  (= ${binary:Version}) | python3-bandit  (= ${binary:Version}),
+         ${misc:Depends},
+         ${python:Depends},
+Description: Security oriented static analyzer for python code - Metapackage
+ Bandit is a tool designed to find common security issues in Python code. To
+ do this Bandit processes each file, builds an Abstract Syntaxt Tree (AST),
+ and runs appropriate plugins against the AST nodes.  Once Bandit has
+ finished scanning all the files it generates a report.
+ .
+ This package is a metapackage to install the Python 2.7 or 3.x of bandit.

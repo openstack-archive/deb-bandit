@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "remove" ] ; then
+	update-alternatives --remove bandit /usr/bin/python2-bandit
+fi
+
+#DEBHELPER#
+
+exit 0
