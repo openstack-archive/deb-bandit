@@ -21,11 +21,22 @@ override_dh_install:
 			--root $(CURDIR)/debian/python3-bandit; \
 	done
 	rm -f $(CURDIR)/debian/python*/usr/lib/python*/dist-packages/*.pth
+
+	# Move the /usr/etc folder in the right place.
 	install -D -m 0644 $(CURDIR)/bandit/config/bandit.yaml $(CURDIR)/debian/bandit/etc/bandit/bandit.yaml
 	rm -rf debian/*/usr/lib/python*/*/bandit/config
+	rm -rf debian/python*-bandit/usr/etc
+
+	# Delete /usr/bandit fron python packages
 	rmdir debian/python-bandit/usr/bandit
 	rmdir debian/python3-bandit/usr/bandit
-	rm -rf debian/python*-bandit/usr/etc
+
+	# Move /usr/share/bandit to the bandit package
+	mkdir -p debian/bandit/usr
+	mv debian/python-bandit/usr/share debian/bandit/usr
+	rm -rf debian/python3-bandit/usr/share
+
+	# Manage /usr/bin/bandit alternatives
 	mv $(CURDIR)/debian/python-bandit/usr/bin/bandit $(CURDIR)/debian/python-bandit/usr/bin/python2-bandit
 	mv $(CURDIR)/debian/python3-bandit/usr/bin/bandit $(CURDIR)/debian/python3-bandit/usr/bin/python3-bandit
 
