@@ -1,4 +1,4 @@
-bandit (0.13.2-1) unstable; urgency=low
+bandit (0.13.2-1) experimental; urgency=low
 
   [ Dave Walker (Daviey) ]
   * New upstream release:
