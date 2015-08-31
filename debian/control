@@ -48,7 +48,7 @@ Depends: python-appdirs,
          python-yaml,
          ${misc:Depends},
          ${python:Depends},
-Description: Security oriented static analyzer for python code - Python 2.7
+Description: Security oriented static analyzer for Python code - Python 2.7
  Bandit is a tool designed to find common security issues in Python code. To
  do this Bandit processes each file, builds an Abstract Syntaxt Tree (AST),
  and runs appropriate plugins against the AST nodes.  Once Bandit has
@@ -64,7 +64,7 @@ Depends: python3-appdirs,
          python3-yaml,
          ${misc:Depends},
          ${python3:Depends},
-Description: Security oriented static analyzer for python code - Python 3.x
+Description: Security oriented static analyzer for Python code - Python 3.x
  Bandit is a tool designed to find common security issues in Python code. To
  do this Bandit processes each file, builds an Abstract Syntaxt Tree (AST),
  and runs appropriate plugins against the AST nodes.  Once Bandit has
@@ -77,7 +77,7 @@ Architecture: all
 Depends: python-bandit  (= ${binary:Version}) | python3-bandit  (= ${binary:Version}),
          ${misc:Depends},
          ${python:Depends},
-Description: Security oriented static analyzer for python code - Metapackage
+Description: Security oriented static analyzer for Python code - Metapackage
  Bandit is a tool designed to find common security issues in Python code. To
  do this Bandit processes each file, builds an Abstract Syntaxt Tree (AST),
  and runs appropriate plugins against the AST nodes.  Once Bandit has
