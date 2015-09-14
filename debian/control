@@ -42,6 +42,8 @@ Homepage: https://wiki.openstack.org/wiki/Security/Projects/Bandit
 
 Package: python-bandit
 Architecture: all
+Breaks: bandit (<< 0.13)
+Replaces: bandit (<< 0.13)
 Depends: python-appdirs,
          python-six (>= 1.9.0),
          python-stevedore,
