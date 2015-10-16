@@ -1,3 +1,9 @@
+bandit (0.13.2-3) unstable; urgency=medium
+
+  * Uploading to unstable.
+
+ -- Thomas Goirand <zigo@debian.org>  Fri, 16 Oct 2015 13:04:08 +0000
+
 bandit (0.13.2-2) experimental; urgency=medium
 
   * Adds Breask+Replaces to allow upgrades (Closes: #798457).
