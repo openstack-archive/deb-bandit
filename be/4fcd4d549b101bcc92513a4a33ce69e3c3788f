@@ -1,0 +1,8 @@
+Code-Review+2: Ivan Udovichenko <iudovichenko@mirantis.com>
+Workflow+1: Ivan Udovichenko <iudovichenko@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Thu, 01 Sep 2016 15:26:52 +0000
+Reviewed-on: https://review.openstack.org/364376
+Project: openstack/deb-bandit
+Branch: refs/heads/debian/newton
