@@ -1,0 +1,9 @@
+Code-Review+2: Jamie Finnigan <jamiefinnigan@gmail.com>
+Code-Review+2: Eric Brown <browne@vmware.com>
+Workflow+1: Eric Brown <browne@vmware.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Sat, 05 Sep 2015 04:14:01 +0000
+Reviewed-on: https://review.openstack.org/219930
+Project: openstack/deb-bandit
+Branch: refs/heads/master

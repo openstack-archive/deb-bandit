@@ -1,0 +1,11 @@
+Code-Review+2: Travis McPeak <tmcpeak@us.ibm.com>
+Code-Review+1: Victor Ryzhenkin (freerunner) <vryzhenkin@mirantis.com>
+Code-Review+1: Stanislaw Pitucha <stanislaw.pitucha@hpe.com>
+Code-Review+2: Tim Kelsey <tim.kelsey@hpe.com>
+Workflow+1: Tim Kelsey <tim.kelsey@hpe.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Fri, 20 Nov 2015 12:25:25 +0000
+Reviewed-on: https://review.openstack.org/246947
+Project: openstack/deb-bandit
+Branch: refs/heads/master

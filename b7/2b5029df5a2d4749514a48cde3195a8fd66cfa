@@ -1,0 +1,9 @@
+Code-Review+2: Eric Brown <browne@vmware.com>
+Code-Review+2: Travis McPeak <tmcpeak@us.ibm.com>
+Workflow+1: Travis McPeak <tmcpeak@us.ibm.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Sat, 07 Nov 2015 11:34:15 +0000
+Reviewed-on: https://review.openstack.org/242565
+Project: openstack/deb-bandit
+Branch: refs/heads/master

@@ -1,0 +1,9 @@
+Code-Review+2: Tim Kelsey <tim.kelsey@hpe.com>
+Code-Review+2: Travis McPeak <tmcpeak@us.ibm.com>
+Workflow+1: Travis McPeak <tmcpeak@us.ibm.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Wed, 19 Aug 2015 14:43:23 +0000
+Reviewed-on: https://review.openstack.org/214489
+Project: openstack/deb-bandit
+Branch: refs/heads/master

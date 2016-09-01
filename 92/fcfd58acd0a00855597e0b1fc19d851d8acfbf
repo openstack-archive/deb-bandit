@@ -1,0 +1,9 @@
+Code-Review+2: Jamie Finnigan <jamiefinnigan@gmail.com>
+Code-Review+2: Travis McPeak <tmcpeak@us.ibm.com>
+Workflow+1: Travis McPeak <tmcpeak@us.ibm.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Wed, 23 Sep 2015 07:40:44 +0000
+Reviewed-on: https://review.openstack.org/207110
+Project: openstack/deb-bandit
+Branch: refs/heads/master

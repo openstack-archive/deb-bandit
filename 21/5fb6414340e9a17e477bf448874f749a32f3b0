@@ -1,0 +1,9 @@
+Code-Review+2: Jamie Finnigan <jamiefinnigan@gmail.com>
+Code-Review+2: Tim Kelsey <tim.kelsey@hpe.com>
+Workflow+1: Tim Kelsey <tim.kelsey@hpe.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Wed, 02 Sep 2015 15:49:37 +0000
+Reviewed-on: https://review.openstack.org/219488
+Project: openstack/deb-bandit
+Branch: refs/heads/master
