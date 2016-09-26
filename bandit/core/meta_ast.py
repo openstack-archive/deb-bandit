@@ -16,14 +16,15 @@
 
 
 from collections import OrderedDict
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class BanditMetaAst():
 
     nodes = OrderedDict()
-
-    def __init__(self, logger):
-        self.logger = logger
 
     def add_node(self, node, parent_id, depth):
         '''Add a node to the AST node collection
@@ -34,20 +35,20 @@ class BanditMetaAst():
         :return: -
         '''
         node_id = hex(id(node))
-        self.logger.debug('adding node : %s [%s]', node_id, depth)
+        logger.debug('adding node : %s [%s]', node_id, depth)
         self.nodes[node_id] = {
             'raw': node, 'parent_id': parent_id, 'depth': depth
         }
 
-    def report(self):
+    def __str__(self):
         '''Dumps a listing of all of the nodes
 
-        Dumps (prints) a listing of all of the nodes for debugging purposes
+        Dumps a listing of all of the nodes for debugging purposes
         :return: -
         '''
         tmpstr = ""
         for k, v in self.nodes.items():
             tmpstr += "Node: %s\n" % k
             tmpstr += "\t%s\n" % str(v)
-        tmpstr += "Length : %s\n" % len(self.nodes)
-        print(tmpstr)
+        tmpstr += "Length: %s\n" % len(self.nodes)
+        return tmpstr
