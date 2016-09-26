@@ -14,41 +14,55 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import sys
+import logging
 
+import six
 import yaml
 
 from bandit.core import constants
+from bandit.core import extension_loader
+from bandit.core import utils
+
+
+logger = logging.getLogger(__name__)
 
 
 class BanditConfig():
-
-    _config = dict()
-    _logger = None
-    _settings = dict()
-
-    def __init__(self, logger, config_file):
+    def __init__(self, config_file=None):
         '''Attempt to initialize a config dictionary from a yaml file.
 
         Error out if loading the yaml file fails for any reason.
-        :param logger: Logger to be used in the case of errors
         :param config_file: The Bandit yaml config file
-        :return: -
+
+        :raises bandit.utils.ConfigError: If the config is invalid or
+            unreadable.
         '''
+        self.config_file = config_file
+        self._config = {}
 
-        self._logger = logger
+        if config_file:
+            try:
+                f = open(config_file, 'r')
+            except IOError:
+                raise utils.ConfigError("Could not read config file.",
+                                        config_file)
 
-        try:
-            f = open(config_file, 'r')
-        except IOError:
-            logger.error("could not open config file: %s", config_file)
-            sys.exit(2)
-        else:
             try:
                 self._config = yaml.safe_load(f)
+                self.validate(config_file)
             except yaml.YAMLError:
-                logger.error("Invalid config file specified: %s", config_file)
-                sys.exit(2)
+                raise utils.ConfigError("Error parsing file.", config_file)
+
+            # valid config must be a dict
+            if not isinstance(self._config, dict):
+                raise utils.ConfigError("Error parsing file.", config_file)
+
+            self.convert_legacy_config()
+
+        else:
+            # use sane defaults
+            self._config['plugin_name_pattern'] = '*.py'
+            self._config['include'] = ['*.py', '*.pyw']
 
         self._init_settings()
 
@@ -64,15 +78,8 @@ class BanditConfig():
         option_levels = option_string.split('.')
         cur_item = self._config
         for level in option_levels:
-            if level in cur_item:
-                try:
-                    cur_item = cur_item[level]
-                except Exception:
-                    self._logger.error(
-                        "error while accessing config property: %s",
-                        option_string
-                    )
-                    return None
+            if cur_item and (level in cur_item):
+                cur_item = cur_item[level]
             else:
                 return None
 
@@ -101,51 +108,8 @@ class BanditConfig():
         possible).
         :return: -
         '''
-        self._init_progress_increment()
-        self._init_output_colors()
+        self._settings = {}
         self._init_plugin_name_pattern()
-
-    def _init_progress_increment(self):
-        '''Sets settings['progress'] from default or config file.'''
-        progress = constants.progress_increment
-        if self.get_option('show_progress_every'):
-            progress = self.get_option('show_progress_every')
-        self._settings['progress'] = progress
-
-    def _init_output_colors(self):
-        '''Sets the settings colors
-
-        sets settings['color_xxx'] where xxx is DEFAULT, HEADER, LOW, MEDIUM,
-        HIGH
-        '''
-        colors = ['HEADER', 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH']
-        color_settings = dict()
-
-        isatty = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
-
-        for color in colors:
-            # if not a TTY, overwrite color codes in configuration
-            if not isatty:
-                color_settings[color] = ""
-            # else read color codes in from the config
-            else:
-                # grab the default color from constant
-                color_settings[color] = constants.color[color]
-
-                # check if the option has been set in config file
-                options_string = 'output_colors.' + color
-                if self.get_option(options_string):
-                    color_string = self.get_option(options_string)
-                    # some manipulation is needed because escape string doesn't
-                    # come back from yaml correctly
-                    if color_string.find('['):
-                        right_half = color_string[color_string.find('['):]
-                        left_half = '\033'
-                        color_settings[color] = left_half + right_half
-
-            # update the settings dict with the color value
-            settings_string = 'color_' + color
-            self._settings[settings_string] = color_settings[color]
 
     def _init_plugin_name_pattern(self):
         '''Sets settings['plugin_name_pattern'] from default or config file.'''
@@ -153,3 +117,127 @@ class BanditConfig():
         if self.get_option('plugin_name_pattern'):
             plugin_name_pattern = self.get_option('plugin_name_pattern')
         self._settings['plugin_name_pattern'] = plugin_name_pattern
+
+    def convert_legacy_config(self):
+        updated_profiles = self.convert_names_to_ids()
+        bad_calls, bad_imports = self.convert_legacy_blacklist_data()
+
+        if updated_profiles:
+            self.convert_legacy_blacklist_tests(updated_profiles,
+                                                bad_calls, bad_imports)
+            self._config['profiles'] = updated_profiles
+
+    def convert_names_to_ids(self):
+        '''Convert test names to IDs, unknown names are left unchanged.'''
+        extman = extension_loader.MANAGER
+
+        updated_profiles = {}
+        for name, profile in six.iteritems(self.get_option('profiles') or {}):
+            # NOTE(tkelsey): cant use default of get() because value is
+            # sometimes explicity 'None', for example when the list if given in
+            # yaml but not populated with any values.
+            include = set((extman.get_plugin_id(i) or i)
+                          for i in (profile.get('include') or []))
+            exclude = set((extman.get_plugin_id(i) or i)
+                          for i in (profile.get('exclude') or []))
+            updated_profiles[name] = {'include': include, 'exclude': exclude}
+        return updated_profiles
+
+    def convert_legacy_blacklist_data(self):
+        '''Detect legacy blacklist data and convert it to new format.'''
+        bad_calls_list = []
+        bad_imports_list = []
+
+        bad_calls = self.get_option('blacklist_calls') or {}
+        bad_calls = bad_calls.get('bad_name_sets', {})
+        for item in bad_calls:
+            for key, val in six.iteritems(item):
+                val['name'] = key
+                val['message'] = val['message'].replace('{func}', '{name}')
+                bad_calls_list.append(val)
+
+        bad_imports = self.get_option('blacklist_imports') or {}
+        bad_imports = bad_imports.get('bad_import_sets', {})
+        for item in bad_imports:
+            for key, val in six.iteritems(item):
+                val['name'] = key
+                val['message'] = val['message'].replace('{module}', '{name}')
+                val['qualnames'] = val['imports']
+                del val['imports']
+                bad_imports_list.append(val)
+
+        if bad_imports_list or bad_calls_list:
+            logger.warning('Legacy blacklist data found in config, '
+                           'overriding data plugins')
+        return bad_calls_list, bad_imports_list
+
+    def convert_legacy_blacklist_tests(self, profiles, bad_imports, bad_calls):
+        '''Detect old blacklist tests, convert to use new builtin.'''
+        def _clean_set(name, data):
+            if name in data:
+                data.remove(name)
+                data.add('B001')
+
+        for name, profile in six.iteritems(profiles):
+            blacklist = {}
+            include = profile['include']
+            exclude = profile['exclude']
+
+            name = 'blacklist_calls'
+            if name in include and name not in exclude:
+                blacklist.setdefault('Call', []).extend(bad_calls)
+
+            _clean_set(name, include)
+            _clean_set(name, exclude)
+
+            name = 'blacklist_imports'
+            if name in include and name not in exclude:
+                blacklist.setdefault('Import', []).extend(bad_imports)
+                blacklist.setdefault('ImportFrom', []).extend(bad_imports)
+                blacklist.setdefault('Call', []).extend(bad_imports)
+
+            _clean_set(name, include)
+            _clean_set(name, exclude)
+            _clean_set('blacklist_import_func', include)
+            _clean_set('blacklist_import_func', exclude)
+
+            # This can happen with a legacy config that includes
+            # blacklist_calls but exclude blacklist_imports for example
+            if 'B001' in include and 'B001' in exclude:
+                exclude.remove('B001')
+
+            profile['blacklist'] = blacklist
+
+    def validate(self, path):
+        '''Validate the config data.'''
+        legacy = False
+        message = ("Config file has an include or exclude reference "
+                   "to legacy test '{0}' but no configuration data for "
+                   "it. Configuration data is required for this test. "
+                   "Please consider switching to the new config file "
+                   "format, the tool 'bandit-config-generator' can help "
+                   "you with this.")
+
+        def _test(key, block, exclude, include):
+            if key in exclude or key in include:
+                if self._config.get(block) is None:
+                    raise utils.ConfigError(message.format(key), path)
+
+        if 'profiles' in self._config:
+            legacy = True
+            for profile in self._config['profiles'].values():
+                inc = profile.get('include') or set()
+                exc = profile.get('exclude') or set()
+
+                _test('blacklist_imports', 'blacklist_imports', inc, exc)
+                _test('blacklist_import_func', 'blacklist_imports', inc, exc)
+                _test('blacklist_calls', 'blacklist_calls', inc, exc)
+
+        # show deprecation message
+        if legacy:
+            logger.warn("Config file '%s' contains deprecated legacy "
+                        "config data. Please consider upgrading to "
+                        "the new config format. The tool "
+                        "'bandit-config-generator' can help you with "
+                        "this. Support for legacy configs will be removed "
+                        "in a future bandit version.", path)
