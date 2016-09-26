@@ -16,17 +16,19 @@
 
 import _ast
 import ast
+import logging
 import os.path
-import symtable
+import sys
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+
+logger = logging.getLogger(__name__)
 
 
 """Various helper functions."""
-
-
-def ast_args_to_str(args):
-        res = ('\n\tArgument/s:\n\t\t%s' %
-               '\n\t\t'.join([ast.dump(arg) for arg in args]))
-        return res
 
 
 def _get_attr_qual_name(node, aliases):
@@ -37,12 +39,12 @@ def _get_attr_qual_name(node, aliases):
     Attributes. This will give you how the code referenced the name but
     will not tell you what the name actually refers to. If we
     encounter a node without a static name we punt with an
-    empty string. If this encounters something more comples, such as
+    empty string. If this encounters something more complex, such as
     foo.mylist[0](a,b) we just return empty string.
 
     :param node: AST Name or Attribute node
     :param aliases: Import aliases dictionary
-    :returns: Qualified name refered to by the attribute or name.
+    :returns: Qualified name referred to by the attribute or name.
     '''
     if type(node) == _ast.Name:
         if node.id in aliases:
@@ -98,94 +100,26 @@ def deepgetattr(obj, attr):
     return obj
 
 
-def describe_symbol(sym):
-    assert type(sym) == symtable.Symbol
-    print("Symbol:", sym.get_name())
-
-    for prop in [
-            'referenced', 'imported', 'parameter',
-            'global', 'declared_global', 'local',
-            'free', 'assigned', 'namespace']:
-        if getattr(sym, 'is_' + prop)():
-            print('    is', prop)
-
-
-def lines_with_context(line_no, line_range, max_lines, file_len):
-    '''Get affected lines, plus context
-
-    This function takes a list of line numbers, adds one line
-    before the specified range, and two lines after, to provide
-    a bit more context. It then limits the number of lines to
-    the specified max_lines value.
-    :param line_no: The line of interest (trigger line)
-    :param line_range: The lines that make up the whole statement
-    :param max_lines: The maximum number of lines to output
-    :return l_range: A list of line numbers to output
-    '''
-
-    # Catch a 0 or negative max lines, don't display any code
-    if max_lines == 0:
-        return []
-
-    l_range = sorted(line_range)
-
-    # add one line before before and after, to make sure we don't miss
-    # any context.
-    l_range.append(l_range[-1] + 1)
-    l_range.append(l_range[0] - 1)
-
-    l_range = sorted(l_range)
-
-    if max_lines < 0:
-        return l_range
-
-    # limit scope to max_lines
-    if len(l_range) > max_lines:
-        # figure out a sane distribution of scope (extra lines after)
-        after = (max_lines - 1) / 2
-        before = max_lines - (after + 1)
-        target = l_range.index(line_no)
-
-        # skew things if the code is at the start or end of the statement
-
-        if before > target:
-            extra = before - target
-            before = target
-            after += extra
-
-        gap = file_len - (target + 1)
-        if gap < after:
-            extra = after - gap
-            after = gap
-            before += extra
-
-        # find start
-        if before >= target:
-            start = 0
-        else:
-            start = target - before
-
-        # find end
-        if target + after > len(l_range) - 1:
-            end = len(l_range) - 1
-        else:
-            end = target + after
-
-        # slice line array
-        l_range = l_range[start:end + 1]
-
-    return l_range
-
-
 class InvalidModulePath(Exception):
     pass
 
 
-class NoConfigFileFound(Exception):
-    def __init__(self, config_locations):
-        message = ("no config found - tried: " +
-                   ", ".join(config_locations))
-        super(NoConfigFileFound, self).__init__(message)
+class ConfigError(Exception):
+    """Raised when the config file fails validation."""
+    def __init__(self, message, config_file):
+        self.config_file = config_file
+        self.message = "{0} : {1}".format(config_file, message)
+        super(ConfigError, self).__init__(self.message)
+
+
+class ProfileNotFound(Exception):
+    """Raised when chosen profile cannot be found."""
+    def __init__(self, config_file, profile):
+        self.config_file = config_file
+        self.profile = profile
+        message = 'Unable to find profile (%s) in config file: %s' % (
+            self.profile, self.config_file)
+        super(ProfileNotFound, self).__init__(message)
 
 
 def warnings_formatter(message,
@@ -220,7 +154,7 @@ def get_module_qualname_from_path(path):
                                 ' Missing path or file name' % (path))
 
     qname = [os.path.splitext(tail)[0]]
-    while head != '/':
+    while head not in ['/', '.']:
         if os.path.isfile(os.path.join(head, '__init__.py')):
             (head, tail) = os.path.split(head)
             qname.insert(0, tail)
@@ -260,46 +194,41 @@ def namespace_path_split(path):
     return tuple(path.rsplit('.', 1))
 
 
-def safe_unicode(obj, *args):
-    '''return the unicode representation of obj.'''
-    try:
-        return unicode(obj, *args)
-    except UnicodeDecodeError:
-        # obj is byte string
-        ascii_text = str(obj).encode('string_escape')
-        return unicode(ascii_text)
+def escaped_bytes_representation(b):
+    '''PY3 bytes need escaping for comparison with other strings.
 
+    In practice it turns control characters into acceptable codepoints then
+    encodes them into bytes again to turn unprintable bytes into printable
+    escape sequences.
 
-def safe_str(obj):
-    '''return the byte string representation of obj.'''
-    try:
-        return str(obj)
-    except UnicodeEncodeError:
-        # obj is unicode
-        return unicode(obj).encode('unicode_escape')
+    This is safe to do for the whole range 0..255 and result matches
+    unicode_escape on a unicode string.
+    '''
+    return b.decode('unicode_escape').encode('unicode_escape')
 
 
 def linerange(node):
     """Get line number range from a node."""
     strip = {"body": None, "orelse": None,
              "handlers": None, "finalbody": None}
-    fields = dir(node)
     for key in strip.keys():
-        if key in fields:
+        if hasattr(node, key):
             strip[key] = getattr(node, key)
             setattr(node, key, [])
 
-    lines = set()
+    lines_min = 9999999999
+    lines_max = -1
     for n in ast.walk(node):
         if hasattr(n, 'lineno'):
-            lines.add(n.lineno)
+            lines_min = min(lines_min, n.lineno)
+            lines_max = max(lines_max, n.lineno)
 
     for key in strip.keys():
         if strip[key] is not None:
             setattr(node, key, strip[key])
 
-    if len(lines):
-        return range(min(lines), max(lines) + 1)
+    if lines_max > -1:
+        return list(range(lines_min, lines_max + 1))
     return [0, 1]
 
 
@@ -311,7 +240,7 @@ def linerange_fix(node):
         start = min(lines)
         delta = node.sibling.lineno - start
         if delta > 1:
-            return range(start, node.sibling.lineno)
+            return list(range(start, node.sibling.lineno))
     return lines
 
 
@@ -319,7 +248,7 @@ def concat_string(node, stop=None):
     '''Builds a string from a ast.BinOp chain.
 
     This will build a string from a series of ast.Str nodes wrapped in
-    ast.BinOp nodes. Somthing like "a" + "b" + "c" or "a %s" % val etc.
+    ast.BinOp nodes. Something like "a" + "b" + "c" or "a %s" % val etc.
     The provided node can be any participant in the BinOp chain.
 
     :param node: (ast.Str or ast.BinOp) The node to process
@@ -360,3 +289,51 @@ def get_called_name(node):
         return (func.attr if isinstance(func, ast.Attribute) else func.id)
     except AttributeError:
         return ""
+
+
+def get_path_for_function(f):
+    '''Get the path of the file where the function is defined.
+
+    :returns: the path, or None if one could not be found or f is not a real
+        function
+    '''
+
+    if hasattr(f, "__module__"):
+        module_name = f.__module__
+    elif hasattr(f, "im_func"):
+        module_name = f.im_func.__module__
+    else:
+        logger.warning("Cannot resolve file where %s is defined", f)
+        return None
+
+    module = sys.modules[module_name]
+    if hasattr(module, "__file__"):
+        return module.__file__
+    else:
+        logger.warning("Cannot resolve file path for module %s", module_name)
+        return None
+
+
+def parse_ini_file(f_loc):
+    config = configparser.ConfigParser()
+    try:
+        config.read(f_loc)
+        return {k: v for k, v in config.items('bandit')}
+
+    except (configparser.Error, KeyError, TypeError):
+        logger.warning("Unable to parse config file %s or missing [bandit] "
+                       "section", f_loc)
+
+    return None
+
+
+def check_ast_node(name):
+    'Check if the given name is that of a valid AST node.'
+    try:
+        node = getattr(ast, name)
+        if issubclass(node, ast.AST):
+            return name
+    except AttributeError:  # nosec(tkelsey): catching expected exception
+        pass
+
+    raise TypeError("Error: %s is not a valid node type in AST" % name)

@@ -70,21 +70,10 @@ class Context():
 
         :return: The number of args a function call has
         '''
-        if hasattr(self._context['call'], 'args'):
+        if 'call' in self._context and hasattr(self._context['call'], 'args'):
             return len(self._context['call'].args)
         else:
             return None
-
-    @property
-    def call_args_string(self):
-        '''Get a string representation of the call arguments
-
-        :return: Returns a string representation of the call arguments
-        '''
-        if 'call' in self._context and hasattr(self._context, 'args'):
-            return utils.ast_args_to_str(self._context['call'].args)
-        else:
-            return ''
 
     @property
     def call_function_name(self):
@@ -141,14 +130,45 @@ class Context():
 
     @property
     def string_val(self):
-        '''Get a string value of a standalone string
+        '''Get the value of a standalone unicode or string object
 
-        :return: String value of a standalone string
+        :return: value of a standalone unicode or string object
         '''
         if 'str' in self._context:
-            return utils.safe_str(self._context['str'])
+            return self._context['str']
         else:
             return None
+
+    @property
+    def bytes_val(self):
+        '''Get the value of a standalone bytes object (py3 only)
+
+        :return: value of a standalone bytes object
+        '''
+        return self._context.get('bytes')
+
+    @property
+    def string_val_as_escaped_bytes(self):
+        '''Get escaped value of the object.
+
+        Turn the value of a string or bytes object into byte sequence with
+        unknown, control, and \ characters escaped.
+
+        This function should be used when looking for a known sequence in a
+        potentially badly encoded string in the code.
+
+        :return: sequence of printable ascii bytes representing original string
+        '''
+        val = self.string_val
+        if val is not None:
+            # it's any of str or unicode in py2, or str in py3
+            return val.encode('unicode_escape')
+
+        val = self.bytes_val
+        if val is not None:
+            return utils.escaped_bytes_representation(val)
+
+        return None
 
     @property
     def statement(self):
@@ -168,10 +188,11 @@ class Context():
         :return: List of defaults
         '''
         defaults = []
-        for default in self._context['node'].args.defaults:
-            defaults.append(utils.get_qual_attr(
-                default,
-                self._context['import_aliases']))
+        if 'node' in self._context:
+            for default in self._context['node'].args.defaults:
+                defaults.append(utils.get_qual_attr(
+                    default,
+                    self._context['import_aliases']))
         return defaults
 
     def _get_literal_value(self, literal):
@@ -227,6 +248,15 @@ class Context():
         else:
             return None
 
+    def get_call_arg_value(self, argument_name):
+        '''Gets the value of a named argument in a function call.
+
+        :return: named argument value
+        '''
+        kwd_values = self.call_keywords
+        if kwd_values is not None and argument_name in kwd_values:
+            return kwd_values[argument_name]
+
     def check_call_arg_value(self, argument_name, argument_values=None):
         '''Checks for a value of a named argument in a function call.
 
@@ -236,16 +266,13 @@ class Context():
         :return: Boolean True if argument found and matched, False if
         found and not matched, None if argument not found at all
         '''
-        kwd_values = self.call_keywords
-        if (kwd_values is not None and
-                argument_name in kwd_values):
+        arg_value = self.get_call_arg_value(argument_name)
+        if arg_value is not None:
             if not isinstance(argument_values, list):
                 # if passed a single value, or a tuple, convert to a list
                 argument_values = list((argument_values,))
             for val in argument_values:
-                if kwd_values[argument_name] == val:
-                    # if matched, fix up the context lineno for reporting
-                    self.set_lineno_for_call_arg(argument_name)
+                if arg_value == val:
                     return True
             return False
         else:
@@ -253,20 +280,17 @@ class Context():
             # eventuality
             return None
 
-    def set_lineno_for_call_arg(self, argument_name):
-        '''Updates the line number for a specific named argument
+    def get_lineno_for_call_arg(self, argument_name):
+        '''Get the line number for a specific named argument
 
-        If a call is split over multiple lines, when a keyword arg is found
-        the issue will be reported with the line number of the start of the
-        call. This function updates the line number in the current context
-        copy to match the actual line where the match occurs.
-        :call_node: the call to find the argument in
+        In case the call is split over multiple lines, get the correct one for
+        the argument.
         :param argument_name: A string - name of the argument to look for
-        :return: Integer - the line number of the found argument
+        :return: Integer - the line number of the found argument, or -1
         '''
         for key in self.node.keywords:
-            if key.arg is argument_name:
-                self._context['lineno'] = key.value.lineno
+            if key.arg == argument_name:
+                return key.value.lineno
 
     def get_call_arg_at_position(self, position_num):
         '''Returns positional argument at the specified position (if it exists)
@@ -275,6 +299,7 @@ class Context():
         :return: Value of the argument at the specified position if it exists
         '''
         if (
+            'call' in self._context and
             hasattr(self._context['call'], 'args') and
             position_num < len(self._context['call'].args)
         ):

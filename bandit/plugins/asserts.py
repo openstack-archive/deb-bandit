@@ -14,11 +14,48 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+r"""
+============================
+B101: Test for use of assert
+============================
+
+This plugin test checks for the use of the Python ``assert`` keyword. It was
+discovered that some projects used assert to enforce interface constraints.
+However, assert is removed with compiling to optimised byte code (python -o
+producing \*.pyo files). This caused various protections to be removed. The use
+of assert is also considered as general bad practice in OpenStack codebases.
+
+Please see
+https://docs.python.org/2/reference/simple_stmts.html#the-assert-statement for
+more info on ``assert``
+
+:Example:
+
+.. code-block:: none
+
+    >> Issue: Use of assert detected. The enclosed code will be removed when
+       compiling to optimised byte code.
+       Severity: Low   Confidence: High
+       Location: ./examples/assert.py:1
+    1 assert logged_in
+    2 display_assets()
+
+.. seealso::
+
+ - https://bugs.launchpad.net/juniperopenstack/+bug/1456193
+ - https://bugs.launchpad.net/heat/+bug/1397883
+ - https://docs.python.org/2/reference/simple_stmts.html#the-assert-statement
+
+.. versionadded:: 0.11.0
+
+"""
+
 import bandit
-from bandit.core.test_properties import *
+from bandit.core import test_properties as test
 
 
-@checks('Assert')
+@test.test_id('B101')
+@test.checks('Assert')
 def assert_used(context):
         return bandit.Issue(
             severity=bandit.LOW,
