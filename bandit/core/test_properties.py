@@ -13,47 +13,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import ast
+
 import logging
 
-from bandit.core import constants
+from bandit.core import utils
 
-logger = logging.getLogger()
-
-
-def severity(sev):
-    '''Decorator function to set 'severity' property.'''
-    def wrapper(func):
-        if sev not in constants.SEVERITY_LEVEL._fields:
-            raise TypeError("Severity error: %s is not one of %s." % (sev,
-                            ",".join(constants.SEVERITY_LEVEL._fields)))
-        func._severity = sev
-        return func
-    return wrapper
-
-
-def category(new_category):
-    '''Decorator function to set 'category'.'''
-    def wrapper(func):
-        func._category = new_category
-        return func
-    return wrapper
-
-
-def title(new_title):
-    '''Decorator function to set 'title' property.'''
-    def wrapper(func):
-        func._title = new_title
-        return func
-    return wrapper
-
-
-def uuid(new_uuid):
-    '''Decorator function to set 'uuid' property.'''
-    def wrapper(func):
-        func._uuid = uuid
-        return func
-    return wrapper
+logger = logging.getLogger(__name__)
 
 
 def checks(*args):
@@ -61,20 +26,8 @@ def checks(*args):
     def wrapper(func):
         if not hasattr(func, "_checks"):
             func._checks = []
-        for a in args:
-            try:
-                holder = getattr(ast, a)
-            except AttributeError:
-                raise TypeError(
-                    "Error: %s is not a valid node type in AST" % a
-                )
-            else:
-                if holder and issubclass(holder, ast.AST):
-                    func._checks.append(a)
-                else:
-                    raise TypeError(
-                        "Error: %s is not a valid node type in AST" % a
-                    )
+        func._checks.extend(utils.check_ast_node(a) for a in args)
+
         logger.debug('checks() decorator executed')
         logger.debug('  func._checks: %s', func._checks)
         return func
@@ -101,3 +54,33 @@ def takes_config(*args):
     else:
         name = args[0]
         return _takes_config
+
+
+def test_id(id_val):
+    '''Test function identifier
+
+    Use this decorator before a test function indicates its simple ID
+    '''
+    def _has_id(func):
+        if not hasattr(func, "_test_id"):
+            func._test_id = id_val
+        return func
+    return _has_id
+
+
+def accepts_baseline(*args):
+    """Decorator to indicate formatter accepts baseline results
+
+    Use of this decorator before a formatter indicates that it is able to deal
+    with baseline results.  Specifically this means it has a way to display
+    candidate results and know when it should do so.
+    """
+    def wrapper(func):
+        if not hasattr(func, '_accepts_baseline'):
+            func._accepts_baseline = True
+
+        logger.debug('accepts_baseline() decorator executed on %s',
+                     func.__name__)
+
+        return func
+    return wrapper(args[0])
