@@ -36,8 +36,8 @@ Build-Depends-Indep: python-appdirs,
                      subunit,
                      testrepository,
 Standards-Version: 3.9.6
-Vcs-Browser: http://anonscm.debian.org/gitweb/?p=openstack/bandit.git
-Vcs-Git: git://anonscm.debian.org/openstack/bandit.git
+Vcs-Browser: https://git.openstack.org/cgit/openstack/deb-bandit?h=debian%2Fnewton
+Vcs-Git: https://git.openstack.org/openstack/deb-bandit -b debian/newton
 Homepage: https://wiki.openstack.org/wiki/Security/Projects/Bandit
 
 Package: python-bandit
