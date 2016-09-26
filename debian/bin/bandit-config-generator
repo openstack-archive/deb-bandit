@@ -1,0 +1,8 @@
+#!/usr/bin/python
+
+import sys
+
+from bandit.cli import config_generator
+
+if __name__ == "__main__":
+    sys.exit(main())
