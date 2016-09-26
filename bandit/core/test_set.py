@@ -15,141 +15,92 @@
 # under the License.
 
 
-from collections import OrderedDict
-import copy
-import sys
+import importlib
+import logging
+
+import six
+
+from bandit.core import blacklisting
+from bandit.core import extension_loader
+
+
+logger = logging.getLogger(__name__)
 
 
 class BanditTestSet():
+    def __init__(self, config, profile={}):
+        extman = extension_loader.MANAGER
+        filtering = self._get_filter(config, profile)
+        self.plugins = [p for p in extman.plugins
+                        if p.plugin._test_id in filtering]
+        self.plugins.extend(self._load_builtins(filtering, profile))
+        self._load_tests(config, self.plugins)
 
-    tests = OrderedDict()
+    def _get_filter(self, config, profile):
+        extman = extension_loader.MANAGER
 
-    def __init__(self, logger, config, profile=None):
-        self.logger = logger
-        self.config = config
-        filter_list = self._filter_list_from_config(profile=profile)
-        self.load_tests(filter=filter_list)
+        inc = set(profile.get('include', []))
+        exc = set(profile.get('exclude', []))
 
-    def _filter_list_from_config(self, profile=None):
-        # will create an (include,exclude) list tuple from a specified name
-        # config section
+        if inc:
+            filtered = inc
+        else:
+            filtered = set(extman.plugins_by_id.keys())
+            filtered.update(extman.builtin)
+            for node, tests in six.iteritems(extman.blacklist):
+                filtered.update(t['id'] for t in tests)
+        return filtered - exc
 
-        # if a profile isn't set, there is nothing to do here
-        if not profile:
-            return_tuple = ([], [])
-            return return_tuple
+    def _load_builtins(self, filtering, profile):
+        '''loads up builtin functions, so they can be filtered.'''
 
-        # an empty include list means that all are included
-        include_list = []
-        # profile needs to be a dict, include needs to be an element in
-        # profile, include needs to be a list, and 'all' is not in include
-        if(isinstance(profile, dict) and 'include' in profile and
-                isinstance(profile['include'], list) and
-                'all' not in profile['include']):
-            # there is a list of specific includes, add to the include list
-            for inc in profile['include']:
-                include_list.append(inc)
+        class Wrapper:
+            def __init__(self, name, plugin):
+                self.name = name
+                self.plugin = plugin
 
-        # an empty exclude list means none are excluded, an exclude list with
-        # 'all' means that all are excluded.  Specifically named excludes are
-        # subtracted from the include list.
-        exclude_list = []
-        if(isinstance(profile, dict) and 'exclude' in profile and
-                isinstance(profile['exclude'], list)):
-            # it's a list, exclude specific tests
-            for exc in profile['exclude']:
-                exclude_list.append(exc)
+        results = []
 
-        self.logger.debug(
-            "_filter_list_from_config completed - include: %s, exclude %s",
-            include_list, exclude_list
-        )
-        return_tuple = (include_list, exclude_list)
-        return return_tuple
+        if 'B001' in filtering:
+            extman = extension_loader.MANAGER
+            blacklist = profile.get('blacklist')
+            if not blacklist:  # not overriden by legacy data
+                blacklist = {}
+                for node, tests in six.iteritems(extman.blacklist):
+                    values = [t for t in tests if t['id'] in filtering]
+                    if values:
+                        blacklist[node] = values
 
-    def _filter_tests(self, filter):
-        '''Filters the test set according to the filter tuple
+            # this dresses up the blacklist to look like a plugin, but
+            # the '_checks' data comes from the blacklist information.
+            # the '_config' is the filtered blacklist data set.
+            setattr(blacklisting.blacklist, "_test_id", 'B001')
+            setattr(blacklisting.blacklist, "_checks", blacklist.keys())
+            setattr(blacklisting.blacklist, "_config", blacklist)
+            results.append(Wrapper('blacklist', blacklisting.blacklist))
 
-        Filters the test set according to the filter tuple which contains
-        include and exclude lists.
-        :param filter: Include, exclude lists tuple
-        :return: -
-        '''
-        include_list = filter[0]
-        exclude_list = filter[1]
+        return results
 
-        # copy of tests dictionary for removing tests from
-        temp_dict = copy.deepcopy(self.tests)
-
-        # if the include list is empty, we don't have to do anything, if it
-        # isn't, we need to remove all tests except the ones in the list
-        if include_list:
-            for check_type in self.tests:
-                for test_name in self.tests[check_type]:
-                    if test_name not in include_list:
-                        del temp_dict[check_type][test_name]
-
-        # remove the items specified in exclude list
-        if exclude_list:
-            for check_type in self.tests:
-                for test_name in self.tests[check_type]:
-                    if test_name in exclude_list:
-                        del temp_dict[check_type][test_name]
-
-        # copy tests back over from temp copy
-        self.tests = copy.deepcopy(temp_dict)
-        self.logger.debug('obtained filtered set of tests:')
-        for k in self.tests:
-            self.logger.debug('\t%s : %s', k, self.tests[k])
-
-    def _get_extension_manager(self):
-        from bandit.core import extension_loader
-        return extension_loader.MANAGER
-
-    def load_tests(self, filter=None):
-        '''Loads all tests in the plugins directory into testsdictionary.'''
-        self.tests = dict()
-
-        extmgr = self._get_extension_manager()
-
-        for plugin in extmgr.plugins:
-            fn_name = plugin.name
-            function = plugin.plugin
-            if hasattr(function, '_checks'):
-                for check in function._checks:
-                    # if check type hasn't been encountered
-                    # yet, initialize to empty dictionary
-                    if check not in self.tests:
-                        self.tests[check] = {}
-                    # if there is a test name collision, bail
-                    if fn_name in self.tests[check]:
-                        self.logger.error(
-                            "Duplicate function definition "
-                            "%s in %s", fn_name, file
-                            )
-                        sys.exit(2)
-                    else:
-                        self.tests[check][fn_name] = function
-                        self.logger.debug(
-                            'added function %s targetting %s',
-                            fn_name, check
-                            )
-        self._filter_tests(filter)
+    def _load_tests(self, config, plugins):
+        '''Builds a dict mapping tests to node types.'''
+        self.tests = {}
+        for plugin in plugins:
+            if hasattr(plugin.plugin, '_takes_config'):
+                # TODO(??): config could come from profile ...
+                cfg = config.get_option(plugin.plugin._takes_config)
+                if cfg is None:
+                    genner = importlib.import_module(plugin.plugin.__module__)
+                    cfg = genner.gen_config(plugin.plugin._takes_config)
+                plugin.plugin._config = cfg
+            for check in plugin.plugin._checks:
+                self.tests.setdefault(check, []).append(plugin.plugin)
+                logger.debug('added function %s (%s) targetting %s',
+                             plugin.name, plugin.plugin._test_id, check)
 
     def get_tests(self, checktype):
         '''Returns all tests that are of type checktype
 
         :param checktype: The type of test to filter on
-        :return: A dictionary of tests which are of the specified type
+        :return: A list of tests which are of the specified type
         '''
-        scoped_tests = {}
-        self.logger.debug('get_tests called with check type: %s', checktype)
-        if checktype in self.tests:
-            scoped_tests = self.tests[checktype]
-        self.logger.debug('get_tests returning scoped_tests : %s',
-                          scoped_tests)
-        return scoped_tests
-
-    @property
-    def has_tests(self):
-        return bool(self.tests)
+        return self.tests.get(checktype) or []
