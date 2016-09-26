@@ -1,3 +1,19 @@
+bandit (1.1.0-1) experimental; urgency=medium
+
+  * New upstream release.
+  * Fixed (build-)depends for this release.
+  * Standards-Version is now 3.9.8 (no change).
+  * Using OpenStack's Gerrit as VCS URLs.
+  * debian/source/options: ignores egg-info and .gitreview.
+  * Using pkgos-dh_auto_{test,install} from openstack-pkg-tools >= 52~.
+  * Adding bandit, bandit-baseline and bandit-config-generator binary in
+    debian/bin to have unit tests and config generation to work.
+  * Generate the bandit.yaml using bandit-config-generator.
+  * Do not run functional tests.
+  * Do not attempt to install bandit.yaml (file gone upstream).
+
+ -- Thomas Goirand <zigo@debian.org>  Mon, 26 Sep 2016 09:17:19 +0200
+
 bandit (0.13.2-3) unstable; urgency=medium
 
   * Uploading to unstable.
