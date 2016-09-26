@@ -4,6 +4,8 @@ set -e
 
 if [ "$1" = "configure" ] ; then
 	update-alternatives --install /usr/bin/bandit bandit /usr/bin/python3-bandit 200
+	update-alternatives --install /usr/bin/bandit-config-generator bandit-config-generator /usr/bin/python3-bandit-config-generator 200
+	update-alternatives --install /usr/bin/bandit-baseline bandit-baseline /usr/bin/python3-bandit-baseline 200
 fi
 
 #DEBHELPER#
