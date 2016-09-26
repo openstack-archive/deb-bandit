@@ -4,6 +4,8 @@ set -e
 
 if [ "$1" = "remove" ] || [ "$1" = "disappear" ] ; then
 	update-alternatives --remove bandit /usr/bin/python2-bandit
+	update-alternatives --remove bandit-config-generator /usr/bin/python2-bandit-config-generator
+	update-alternatives --remove bandit-baseline /usr/bin/python2-bandit-baseline
 fi
 
 #DEBHELPER#
