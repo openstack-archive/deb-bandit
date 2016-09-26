@@ -15,28 +15,24 @@
 # under the License.
 
 import copy
+import logging
 import warnings
-
-import six
 
 from bandit.core import constants
 from bandit.core import context as b_context
 from bandit.core import utils
 
 warnings.formatwarning = utils.warnings_formatter
+logger = logging.getLogger(__name__)
 
 
 class BanditTester():
-
-    results = None
-
-    def __init__(self, logger, config, results, testset, debug):
-        self.logger = logger
-        self.config = config
-        self.results = results
+    def __init__(self, testset, debug, nosec_lines):
+        self.results = []
         self.testset = testset
         self.last_result = None
         self.debug = debug
+        self.nosec_lines = nosec_lines
 
     def run_tests(self, raw_context, checktype):
         '''Runs all tests for a certain type of check, for example
@@ -46,6 +42,7 @@ class BanditTester():
 
         :param raw_context: Raw context dictionary
         :param checktype: The type of checks to run
+        :param nosec_lines: Lines which should be skipped because of nosec
         :return: a score based on the number and type of test results
         '''
 
@@ -55,55 +52,46 @@ class BanditTester():
         }
 
         tests = self.testset.get_tests(checktype)
-        for name, test in six.iteritems(tests):
+        for test in tests:
+            name = test.__name__
             # execute test with the an instance of the context class
             temp_context = copy.copy(raw_context)
             context = b_context.Context(temp_context)
             try:
-                if hasattr(test, '_takes_config'):
-                    # TODO(??): Possibly allow override from profile
-                    test_config = self.config.get_option(
-                        test._takes_config)
-                    if test_config is None:
-                        warnings.warn(
-                            '"{0}" has been skipped due to missing config '
-                            '"{1}".'.format(test.__name__, test._takes_config)
-                        )
-                        continue
-                    result = test(context, test_config)
+                if hasattr(test, '_config'):
+                    result = test(context, test._config)
                 else:
                     result = test(context)
 
-                # the test call returns a 2- or 3-tuple
-                # - (issue_severity, issue_text) or
-                # - (issue_severity, issue_confidence, issue_text)
-
-                # add default confidence level, if not returned by test
-                if (result is not None and len(result) == 2):
-                    result = (
-                        result[0],
-                        constants.CONFIDENCE_DEFAULT,
-                        result[1]
-                    )
-
                 # if we have a result, record it and update scores
-                if result is not None:
-                    self.results.add(temp_context, name, result)
-                    self.logger.debug(
+                if (result is not None and
+                        result.lineno not in self.nosec_lines and
+                        temp_context['lineno'] not in self.nosec_lines):
+                    result.fname = temp_context['filename']
+                    if result.lineno is None:
+                        result.lineno = temp_context['lineno']
+                    result.linerange = temp_context['linerange']
+                    result.test = name
+                    if result.test_id == "":
+                        result.test_id = test._test_id
+
+                    self.results.append(result)
+
+                    logger.debug(
                         "Issue identified by %s: %s", name, result
                     )
-                    sev = constants.RANKING.index(result[0])
-                    val = constants.RANKING_VALUES[result[0]]
+                    sev = constants.RANKING.index(result.severity)
+                    val = constants.RANKING_VALUES[result.severity]
                     scores['SEVERITY'][sev] += val
-                    con = constants.RANKING.index(result[1])
-                    val = constants.RANKING_VALUES[result[1]]
+                    con = constants.RANKING.index(result.confidence)
+                    val = constants.RANKING_VALUES[result.confidence]
                     scores['CONFIDENCE'][con] += val
 
             except Exception as e:
                 self.report_error(name, context, e)
                 if self.debug:
                     raise
-        self.logger.debug("Returning scores: %s", scores)
+        logger.debug("Returning scores: %s", scores)
         return scores
 
     def report_error(self, test, context, error):
@@ -116,4 +104,4 @@ class BanditTester():
         what += str(error)
         import traceback
         what += traceback.format_exc()
-        self.logger.error(what)
+        logger.error(what)
