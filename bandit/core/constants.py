@@ -14,26 +14,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# default output text colors
-color = {
-    'DEFAULT': '\033[0m',
-    'HEADER': '\033[95m',
-    'LOW': '\033[94m',
-    'MEDIUM': '\033[93m',
-    'HIGH': '\033[91m',
-}
-
 # default plugin name pattern
 plugin_name_pattern = '*.py'
 
 # default progress increment
 progress_increment = 50
 
-# flag/s used to mark lines where identified issues should not be reported
-SKIP_FLAGS = ['nosec', ]
-
 RANKING = ['UNDEFINED', 'LOW', 'MEDIUM', 'HIGH']
 RANKING_VALUES = {'UNDEFINED': 1, 'LOW': 3, 'MEDIUM': 5, 'HIGH': 10}
+CRITERIA = [('SEVERITY', 'UNDEFINED'), ('CONFIDENCE', 'UNDEFINED')]
 
 # add each ranking to globals, to allow direct access in module name space
 for rank in RANKING:
@@ -48,3 +37,6 @@ CONFIDENCE_DEFAULT = 'UNDEFINED'
 # have a variable we cannot determine if False.
 # See https://docs.python.org/2/library/stdtypes.html#truth-value-testing
 FALSE_VALUES = [None, False, 'False', 0, 0.0, 0j, '', (), [], {}]
+
+# override with "log_format" option in config file
+log_format_string = '[%(module)s]\t%(levelname)s\t%(message)s'
