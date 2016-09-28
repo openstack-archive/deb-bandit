@@ -11,6 +11,7 @@ bandit (1.1.0-1) experimental; urgency=medium
   * Generate the bandit.yaml using bandit-config-generator.
   * Do not run functional tests that are failing.
   * Do not attempt to install bandit.yaml (file gone upstream).
+  * Fixed EPOCH for oslotest.
 
  -- Thomas Goirand <zigo@debian.org>  Mon, 26 Sep 2016 09:17:19 +0200
 
