@@ -1,3 +1,9 @@
+bandit (1.1.0-2) unstable; urgency=medium
+
+  * Uploading to unstable.
+
+ -- Thomas Goirand <zigo@debian.org>  Tue, 04 Oct 2016 09:32:43 +0200
+
 bandit (1.1.0-1) experimental; urgency=medium
 
   * New upstream release.
