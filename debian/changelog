@@ -1,3 +1,9 @@
+bandit (1.1.0-3) unstable; urgency=medium
+
+  * Add remove failing tests patch (Closes: #841631).
+
+ -- Thomas Goirand <zigo@debian.org>  Mon, 31 Oct 2016 09:41:01 +0100
+
 bandit (1.1.0-2) unstable; urgency=medium
 
   * Uploading to unstable.
