@@ -1,3 +1,10 @@
+bandit (1.1.0-4) UNRELEASED; urgency=medium
+
+  * d/control: Use correct branch in Vcs-* fields
+  * Bumped debhelper compat version to 10
+
+ -- Ondřej Nový <onovy@debian.org>  Wed, 23 Nov 2016 23:47:47 +0100
+
 bandit (1.1.0-3) unstable; urgency=medium
 
   * Add remove failing tests patch (Closes: #841631).
